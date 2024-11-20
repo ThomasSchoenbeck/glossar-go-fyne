@@ -14,8 +14,15 @@ import (
 
 var selectedEntry *GlossaryEntry
 var selectedEntryTags []string
+var filteredGlossarList []GlossaryEntry
+var glossarListSelectedIndex int = -1
+var glossarList *widget.List
+var glossarSearchEntry *widget.Entry
 
 func SetupGlossar(w fyne.Window) *container.TabItem {
+
+	filteredGlossarList = glossary
+
 	glossarTermEntry := widget.NewEntry()
 	glossarDefinitionEntry := widget.NewMultiLineEntry()
 	glossarDefinitionEntry.Wrapping = fyne.TextWrapWord
@@ -32,26 +39,31 @@ func SetupGlossar(w fyne.Window) *container.TabItem {
 		},
 	)
 
-	glossarList := widget.NewList(
+	glossarList = widget.NewList(
 		func() int {
-			return len(glossary)
+			return len(filteredGlossarList)
 		},
 		func() fyne.CanvasObject {
 			return widget.NewLabel("")
 		},
 		func(i widget.ListItemID, o fyne.CanvasObject) {
-			o.(*widget.Label).SetText(glossary[i].Term)
+			o.(*widget.Label).SetText(filteredGlossarList[i].Term)
 		},
 	)
 
 	glossarList.OnSelected = func(id widget.ListItemID) {
-		selectedEntry = &glossary[id]
+		selectedEntry = &filteredGlossarList[id]
 		// tag list
 		selectedEntryTags = selectedEntry.Tags
 		glossarEntryTagList.Refresh()
 		// input fields
 		glossarTermEntry.SetText(selectedEntry.Term)
 		glossarDefinitionEntry.SetText(selectedEntry.Definition)
+	}
+
+	glossarSearchEntry = widget.NewEntry()
+	glossarSearchEntry.OnChanged = func(s string) {
+		updateGlossarListSelection(glossary, s)
 	}
 
 	glossarSaveButton := widget.NewButton("Save", func() {
@@ -107,7 +119,13 @@ func SetupGlossar(w fyne.Window) *container.TabItem {
 	})
 
 	glossarListContainer := container.NewVScroll(glossarList)
-	glossarListContainer.SetMinSize(fyne.NewSize(200, 300)) // Set minimum size to increase height
+	glossarListContainer.SetMinSize(fyne.NewSize(200, 480)) // Set minimum size to increase height
+
+	glossarListBox := container.NewVBox(
+		widget.NewLabel("Search Glossar:"),
+		glossarSearchEntry,
+		glossarListContainer,
+	)
 
 	glossarEntryTagListContainer := container.NewVScroll(glossarEntryTagList)
 	glossarEntryTagListContainer.SetMinSize(fyne.NewSize(300, 200))
@@ -128,9 +146,40 @@ func SetupGlossar(w fyne.Window) *container.TabItem {
 	)
 
 	return container.NewTabItem("Glossar",
-		container.NewHBox(glossarListContainer,
+		container.NewHBox(glossarListBox,
 			vbox,
 		),
 	)
 
+}
+
+func updateGlossarListSelection(glossaryEntries []GlossaryEntry, searchString string) {
+	var filteredEntries []GlossaryEntry
+	lowerSearchTerm := strings.ToLower(searchString)
+	if strings.Contains(lowerSearchTerm, "tag:") {
+		tagSearchString := lowerSearchTerm
+		tagSearchString = strings.Replace(tagSearchString, "tag:", "", 1)
+
+		for _, entry := range glossaryEntries {
+			for _, tag := range entry.Tags {
+				if strings.Contains(strings.ToLower(tag), strings.ToLower(tagSearchString)) {
+					filteredEntries = append(filteredEntries, entry)
+				}
+			}
+		}
+
+	} else {
+		for _, entry := range glossaryEntries {
+			if strings.Contains(strings.ToLower(entry.Term), lowerSearchTerm) {
+				filteredEntries = append(filteredEntries, entry)
+			}
+		}
+	}
+
+	filteredGlossarList = filteredEntries
+	glossarList.Refresh()
+}
+
+func FocusGlossarSearch(w fyne.Window) {
+	w.Canvas().Focus(glossarSearchEntry)
 }

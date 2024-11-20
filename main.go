@@ -113,10 +113,12 @@ func main() {
 		m := fyne.NewMenu("Glossary",
 			fyne.NewMenuItem("Open Glossary Manager", func() {
 				w.Show()
+				FocusGlossarSearch(w)
 			}),
 			fyne.NewMenuItem("Open Quick Search", func() {
 				quickSearch.Show()
 				quickSearchVisible = true
+				FocusSearchEntry(quickSearch)
 			}),
 			// fyne.NewMenuItem("Quit", func() {
 			// 	a.Quit()
@@ -153,5 +155,17 @@ func main() {
 	w.Resize(fyne.NewSize(600, 600))           // Increased height of the main window
 	quickSearch.Resize(fyne.NewSize(400, 200)) // Adjusted height of the quick search window
 	w.Show()                                   // Open the main window when the application starts
+	FocusGlossarSearch(w)
+
+	// Load your own icon resource
+	iconData, err := os.ReadFile("icon_64.png")
+	if err != nil {
+		panic(err)
+	}
+	icon := fyne.NewStaticResource("icon.png", iconData)
+
+	// Set the app icon
+	a.SetIcon(icon)
+
 	a.Run()
 }
