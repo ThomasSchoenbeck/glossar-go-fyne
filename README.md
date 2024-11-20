@@ -18,7 +18,6 @@ todo:
 - functionality to add, update or delete tags
 - better styling
 - update readme
-- search for tags in tags tab
 
 known issues:
 - app icon (window and taskbar) is not working

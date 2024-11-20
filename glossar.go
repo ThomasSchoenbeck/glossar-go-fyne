@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"image/color"
 	"strings"
 
@@ -18,6 +19,7 @@ var filteredGlossarList []GlossaryEntry
 var glossarListSelectedIndex int = -1
 var glossarList *widget.List
 var glossarSearchEntry *widget.Entry
+var glossarSearchLabel *widget.Label
 
 func SetupGlossar(w fyne.Window) *container.TabItem {
 
@@ -84,7 +86,8 @@ func SetupGlossar(w fyne.Window) *container.TabItem {
 		glossarTermEntry.SetText("")
 		glossarDefinitionEntry.SetText("")
 		selectedEntry = nil
-		glossarList.Refresh()
+		// glossarList.Refresh()
+		updateGlossarListSelection(glossary, glossarSearchEntry.Text)
 		saveGlossary()
 	})
 
@@ -121,8 +124,10 @@ func SetupGlossar(w fyne.Window) *container.TabItem {
 	glossarListContainer := container.NewVScroll(glossarList)
 	glossarListContainer.SetMinSize(fyne.NewSize(200, 480)) // Set minimum size to increase height
 
+	glossarSearchLabel = widget.NewLabel(fmt.Sprintf("Search Glossar: %d of %d", len(filteredGlossarList), len(glossary)))
+
 	glossarListBox := container.NewVBox(
-		widget.NewLabel("Search Glossar:"),
+		glossarSearchLabel,
 		glossarSearchEntry,
 		glossarListContainer,
 	)
@@ -177,6 +182,7 @@ func updateGlossarListSelection(glossaryEntries []GlossaryEntry, searchString st
 	}
 
 	filteredGlossarList = filteredEntries
+	glossarSearchLabel.SetText(fmt.Sprintf("Search Glossar: %d of %d", len(filteredGlossarList), len(glossary)))
 	glossarList.Refresh()
 }
 
