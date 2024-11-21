@@ -12,13 +12,16 @@ import (
 var listMaxLength int = 5
 var selectedIndex int = -1
 var filtered []GlossaryEntry
+var quickSearchFocused bool = false
 
 func SetupQuicksearch(a fyne.App) fyne.Window {
 	quickSearchWindow := a.NewWindow("Quick Search")
 	resultsContainer := container.NewVBox()
 	resultsScroll := container.NewVScroll(resultsContainer)
 	resultsScroll.SetMinSize(fyne.NewSize(400, 200)) // Ensure space for at least 5 items
+
 	searchEntry = newCustomEntry(func() {
+		quickSearchFocused = true
 		filtered = glossary
 		updateSelection(resultsContainer, selectedIndex, filtered)
 	}, func(key *fyne.KeyEvent) {
@@ -32,7 +35,10 @@ func SetupQuicksearch(a fyne.App) fyne.Window {
 			}
 		}
 		updateSelection(resultsContainer, selectedIndex, filtered)
-	})
+	}, func() {
+		quickSearchFocused = false
+	},
+	)
 	suggestionLabel := widget.NewRichTextFromMarkdown("")
 	suggestionLabel.Hide()
 
@@ -78,6 +84,9 @@ func SetupQuicksearch(a fyne.App) fyne.Window {
 			}
 		})
 		hook.Register(hook.KeyDown, []string{"esc"}, func(e hook.Event) {
+			if !quickSearchFocused {
+				return
+			}
 			if quickSearchVisible {
 				quickSearchWindow.Hide()
 				quickSearchVisible = false

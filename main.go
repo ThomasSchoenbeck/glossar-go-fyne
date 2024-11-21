@@ -37,10 +37,11 @@ type customEntry struct {
 	widget.Entry
 	onFocusGained func()
 	onKeyDown     func(*fyne.KeyEvent)
+	onFocusLost   func()
 }
 
-func newCustomEntry(onFocusGained func(), onKeyDown func(*fyne.KeyEvent)) *customEntry {
-	entry := &customEntry{onFocusGained: onFocusGained, onKeyDown: onKeyDown}
+func newCustomEntry(onFocusGained func(), onKeyDown func(*fyne.KeyEvent), onFocusLost func()) *customEntry {
+	entry := &customEntry{onFocusGained: onFocusGained, onKeyDown: onKeyDown, onFocusLost: onFocusLost}
 	entry.ExtendBaseWidget(entry)
 	return entry
 }
@@ -49,6 +50,13 @@ func (e *customEntry) FocusGained() {
 	e.Entry.FocusGained()
 	if e.onFocusGained != nil {
 		e.onFocusGained()
+	}
+}
+
+func (e *customEntry) FocusLost() {
+	e.Entry.FocusLost()
+	if e.onFocusLost != nil {
+		e.onFocusLost()
 	}
 }
 
@@ -78,6 +86,7 @@ func loadGlossary() {
 
 func saveGlossary() {
 	glossarFile.Glossar = glossary
+	glossarFile.Tags = tags
 	data, err := yaml.Marshal(&glossarFile)
 	if err != nil {
 		log.Fatalf("Failed to marshal glossary: %v", err)
@@ -166,6 +175,8 @@ func main() {
 
 	// Set the app icon
 	a.SetIcon(icon)
+	w.SetIcon(icon)
+	quickSearch.SetIcon(icon)
 
 	a.Run()
 }

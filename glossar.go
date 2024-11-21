@@ -20,16 +20,19 @@ var glossarListSelectedIndex int = -1
 var glossarList *widget.List
 var glossarSearchEntry *widget.Entry
 var glossarSearchLabel *widget.Label
+var glossarTermEntry *widget.Entry
+var glossarDefinitionEntry *widget.Entry
+var glossarEntryTagList *widget.List
 
 func SetupGlossar(w fyne.Window) *container.TabItem {
 
 	filteredGlossarList = glossary
 
-	glossarTermEntry := widget.NewEntry()
-	glossarDefinitionEntry := widget.NewMultiLineEntry()
+	glossarTermEntry = widget.NewEntry()
+	glossarDefinitionEntry = widget.NewMultiLineEntry()
 	glossarDefinitionEntry.Wrapping = fyne.TextWrapWord
 
-	glossarEntryTagList := widget.NewList(
+	glossarEntryTagList = widget.NewList(
 		func() int {
 			return len(selectedEntryTags)
 		},
@@ -83,13 +86,11 @@ func SetupGlossar(w fyne.Window) *container.TabItem {
 			glossary = append(glossary, GlossaryEntry{Term: term, Definition: definition})
 		}
 
-		glossarTermEntry.SetText("")
-		glossarDefinitionEntry.SetText("")
-		selectedEntry = nil
-		// glossarList.Refresh()
+		clearSelection()
 		updateGlossarListSelection(glossary, glossarSearchEntry.Text)
 		saveGlossary()
 	})
+	glossarSaveButton.Importance = widget.HighImportance
 
 	renameButton := widget.NewButton("Rename", func() {
 		if selectedEntry == nil {
@@ -116,10 +117,21 @@ func SetupGlossar(w fyne.Window) *container.TabItem {
 	})
 
 	clearButton := widget.NewButton("Clear", func() {
-		glossarTermEntry.SetText("")
-		glossarDefinitionEntry.SetText("")
-		selectedEntry = nil
+		clearSelection()
 	})
+
+	deleteButton := widget.NewButton("Delete", func() {
+		for i, entry := range glossary {
+			if entry.Term == selectedEntry.Term {
+				glossary = append(glossary[:i], glossary[i+1:]...)
+				break
+			}
+		}
+		updateGlossarListSelection(glossary, glossarSearchEntry.Text)
+		saveGlossary()
+		clearSelection()
+	})
+	deleteButton.Importance = widget.DangerImportance
 
 	glossarListContainer := container.NewVScroll(glossarList)
 	glossarListContainer.SetMinSize(fyne.NewSize(200, 480)) // Set minimum size to increase height
@@ -141,7 +153,7 @@ func SetupGlossar(w fyne.Window) *container.TabItem {
 	vbox := container.New(
 		layout.NewVBoxLayout(),
 		background,
-		container.NewHBox(widget.NewLabel("Term:"), renameButton, clearButton),
+		container.NewHBox(widget.NewLabel("Term:"), renameButton, clearButton, deleteButton),
 		glossarTermEntry,
 		widget.NewLabel("Definition:"),
 		glossarDefinitionEntry,
@@ -188,4 +200,12 @@ func updateGlossarListSelection(glossaryEntries []GlossaryEntry, searchString st
 
 func FocusGlossarSearch(w fyne.Window) {
 	w.Canvas().Focus(glossarSearchEntry)
+}
+
+func clearSelection() {
+	glossarTermEntry.SetText("")
+	glossarDefinitionEntry.SetText("")
+	selectedEntry = nil
+	selectedEntryTags = []string{}
+	glossarEntryTagList.Refresh()
 }
