@@ -4,6 +4,7 @@ go 1.23.2
 
 require (
 	fyne.io/fyne/v2 v2.5.2
+	github.com/matoous/go-nanoid/v2 v2.1.0
 	github.com/robotn/gohook v0.41.0
 	gopkg.in/yaml.v2 v2.4.0
 )

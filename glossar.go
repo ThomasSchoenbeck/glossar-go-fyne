@@ -11,6 +11,7 @@ import (
 	"fyne.io/fyne/v2/dialog"
 	"fyne.io/fyne/v2/layout"
 	"fyne.io/fyne/v2/widget"
+	gonanoid "github.com/matoous/go-nanoid/v2"
 )
 
 var selectedEntry *GlossaryEntry
@@ -23,6 +24,15 @@ var glossarSearchLabel *widget.Label
 var glossarTermEntry *widget.Entry
 var glossarDefinitionEntry *widget.Entry
 var glossarEntryTagList *widget.List
+var renameButton *widget.Button
+var deleteButton *widget.Button
+var addTagButton *widget.Button
+var addTagEntry *widget.Entry
+
+var UpdatedTags []string
+
+var selectedGlossarTag string
+var glossarTagDeleteButton *widget.Button
 
 func SetupGlossar(w fyne.Window) *container.TabItem {
 
@@ -56,43 +66,27 @@ func SetupGlossar(w fyne.Window) *container.TabItem {
 		},
 	)
 
-	glossarList.OnSelected = func(id widget.ListItemID) {
-		selectedEntry = &filteredGlossarList[id]
-		// tag list
-		selectedEntryTags = selectedEntry.Tags
-		glossarEntryTagList.Refresh()
-		// input fields
-		glossarTermEntry.SetText(selectedEntry.Term)
-		glossarDefinitionEntry.SetText(selectedEntry.Definition)
-	}
+	glossarTagDeleteButton = widget.NewButton("Delete", func() {
 
-	glossarSearchEntry = widget.NewEntry()
-	glossarSearchEntry.OnChanged = func(s string) {
-		updateGlossarListSelection(glossary, s)
-	}
-
-	glossarSaveButton := widget.NewButton("Save", func() {
-		term := strings.TrimSpace(glossarTermEntry.Text)
-		definition := glossarDefinitionEntry.Text
-
-		if term == "" {
-			dialog.ShowInformation("Error", "Term cannot be empty or just spaces", w)
-			return
+		for i, tag := range selectedEntryTags {
+			if tag == selectedGlossarTag {
+				selectedEntryTags = append(selectedEntryTags[:i], selectedEntryTags[i+1:]...)
+				glossarEntryTagList.Refresh()
+				selectedGlossarTag = ""
+				break
+			}
 		}
 
-		if selectedEntry != nil {
-			selectedEntry.Definition = definition
-		} else {
-			glossary = append(glossary, GlossaryEntry{Term: term, Definition: definition})
-		}
-
-		clearSelection()
-		updateGlossarListSelection(glossary, glossarSearchEntry.Text)
-		saveGlossary()
 	})
-	glossarSaveButton.Importance = widget.HighImportance
 
-	renameButton := widget.NewButton("Rename", func() {
+	glossarTagDeleteButton.Disable()
+
+	glossarEntryTagList.OnSelected = func(id widget.ListItemID) {
+		selectedGlossarTag = selectedEntryTags[id]
+		glossarTagDeleteButton.Enable()
+	}
+
+	renameButton = widget.NewButton("Rename", func() {
 		if selectedEntry == nil {
 			dialog.ShowInformation("Error", "No entry selected to rename", w)
 			return
@@ -115,23 +109,113 @@ func SetupGlossar(w fyne.Window) *container.TabItem {
 			}
 		}, w)
 	})
+	renameButton.Disable()
+
+	deleteButton = widget.NewButton("Delete", func() {
+
+		dialog.ShowConfirm("Delete", fmt.Sprintf("do you realy want to delete the entry: %s?", selectedEntry.Term), func(b bool) {
+			if b {
+				for i, entry := range glossary {
+					if entry.Id == selectedEntry.Id {
+						glossary = append(glossary[:i], glossary[i+1:]...)
+						break
+					}
+				}
+				updateGlossarListSelection(glossary, glossarSearchEntry.Text)
+				saveGlossary()
+				clearSelection()
+			}
+		}, w)
+
+	})
+	deleteButton.Importance = widget.DangerImportance
+	deleteButton.Disable()
+
+	glossarList.OnSelected = func(id widget.ListItemID) {
+		selectedEntry = &filteredGlossarList[id]
+		deleteButton.Enable()
+		renameButton.Enable()
+		// tag list
+		selectedEntryTags = selectedEntry.Tags
+		glossarEntryTagList.Refresh()
+		// input fields
+		glossarTermEntry.SetText(selectedEntry.Term)
+		glossarDefinitionEntry.SetText(selectedEntry.Definition)
+	}
+
+	glossarSearchEntry = widget.NewEntry()
+	glossarSearchEntry.OnChanged = func(s string) {
+		updateGlossarListSelection(glossary, s)
+	}
+
+	glossarSaveButton := widget.NewButton("Save", func() {
+		term := strings.TrimSpace(glossarTermEntry.Text)
+		definition := glossarDefinitionEntry.Text
+
+		if term == "" {
+			dialog.ShowInformation("Error", "Term cannot be empty or just spaces", w)
+			return
+		}
+		if UpdatedTags != nil {
+			tags = UpdatedTags
+		}
+
+		if selectedEntry != nil {
+			selectedEntry.Definition = definition
+			selectedEntry.Tags = selectedEntryTags
+
+			if selectedEntry.Id == "" {
+				for i, entry := range glossary {
+					if entry.Term == selectedEntry.Term {
+						glossary[i].Id = newNanoId(w)
+						glossary[i].Definition = selectedEntry.Definition
+						glossary[i].Tags = selectedEntry.Tags
+					}
+				}
+			} else {
+
+				for i, entry := range glossary {
+					if entry.Id == selectedEntry.Id {
+						glossary[i].Definition = selectedEntry.Definition
+						glossary[i].Tags = selectedEntry.Tags
+					}
+				}
+			}
+		} else {
+			glossary = append(glossary, GlossaryEntry{Id: newNanoId(w), Term: term, Definition: definition, Tags: selectedEntryTags})
+		}
+
+		clearSelection()
+		updateGlossarListSelection(glossary, glossarSearchEntry.Text)
+		saveGlossary()
+	})
+	glossarSaveButton.Importance = widget.HighImportance
 
 	clearButton := widget.NewButton("Clear", func() {
 		clearSelection()
 	})
 
-	deleteButton := widget.NewButton("Delete", func() {
-		for i, entry := range glossary {
-			if entry.Term == selectedEntry.Term {
-				glossary = append(glossary[:i], glossary[i+1:]...)
-				break
+	addTagEntry = widget.NewEntry()
+	addTagButton = widget.NewButton("Add", func() {
+		dialog.ShowForm("New Tag", "add", "cancel", []*widget.FormItem{widget.NewFormItem("", addTagEntry)}, func(b bool) {
+			if b {
+				newTag := addTagEntry.Text
+				selectedEntryTags = append(selectedEntryTags, newTag)
+				glossarEntryTagList.Refresh()
+				tagInList := false
+				for _, tag := range tags {
+					if tag == newTag {
+						tagInList = true
+					}
+				}
+				if !tagInList {
+					UpdatedTags = tags
+					UpdatedTags = append(UpdatedTags, newTag)
+				}
 			}
-		}
-		updateGlossarListSelection(glossary, glossarSearchEntry.Text)
-		saveGlossary()
-		clearSelection()
+			addTagEntry.SetText("")
+		}, w)
 	})
-	deleteButton.Importance = widget.DangerImportance
 
 	glossarListContainer := container.NewVScroll(glossarList)
 	glossarListContainer.SetMinSize(fyne.NewSize(200, 480)) // Set minimum size to increase height
@@ -158,7 +242,7 @@ func SetupGlossar(w fyne.Window) *container.TabItem {
 		widget.NewLabel("Definition:"),
 		glossarDefinitionEntry,
 		glossarSaveButton,
-		widget.NewLabel("Tags:"),
+		container.NewHBox(widget.NewLabel("Tags:"), addTagButton, glossarTagDeleteButton),
 		glossarEntryTagListContainer,
 	)
 
@@ -208,4 +292,17 @@ func clearSelection() {
 	selectedEntry = nil
 	selectedEntryTags = []string{}
 	glossarEntryTagList.Refresh()
+	deleteButton.Disable()
+	renameButton.Disable()
+	UpdatedTags = nil
+	glossarTagDeleteButton.Disable()
+	selectedGlossarTag = ""
+}
+
+func newNanoId(w fyne.Window) string {
+	id, err := gonanoid.New()
+	if err != nil {
+		dialog.ShowError(err, w)
+	}
+	return id
 }

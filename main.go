@@ -19,6 +19,7 @@ type GlossarFile struct {
 }
 
 type GlossaryEntry struct {
+	Id         string   `yaml:"id"`
 	Term       string   `yaml:"term"`
 	Definition string   `yaml:"definition"`
 	Tags       []string `yaml:"tags"`
@@ -87,6 +88,7 @@ func loadGlossary() {
 func saveGlossary() {
 	glossarFile.Glossar = glossary
 	glossarFile.Tags = tags
+	RefreshTagList()
 	data, err := yaml.Marshal(&glossarFile)
 	if err != nil {
 		log.Fatalf("Failed to marshal glossary: %v", err)
