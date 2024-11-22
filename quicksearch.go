@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"strings"
 
 	"fyne.io/fyne/v2"
@@ -22,11 +21,9 @@ func SetupQuicksearch(a fyne.App) fyne.Window {
 	quickSearchWindow := a.NewWindow("Quick Search")
 	a.Lifecycle().SetOnEnteredForeground(func() {
 		appWindowActive = true
-		fmt.Println("appWindowActive", appWindowActive)
 	})
 	a.Lifecycle().SetOnExitedForeground(func() {
 		appWindowActive = false
-		fmt.Println("appWindowActive", appWindowActive)
 	})
 	resultsContainer := container.NewVBox()
 	resultsScroll := container.NewVScroll(resultsContainer)
