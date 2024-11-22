@@ -2,7 +2,6 @@ package main
 
 import (
 	"fmt"
-	"image/color"
 	"strings"
 
 	"fyne.io/fyne/v2"
@@ -10,6 +9,7 @@ import (
 	"fyne.io/fyne/v2/container"
 	"fyne.io/fyne/v2/dialog"
 	"fyne.io/fyne/v2/layout"
+	"fyne.io/fyne/v2/theme"
 	"fyne.io/fyne/v2/widget"
 	gonanoid "github.com/matoous/go-nanoid/v2"
 )
@@ -33,6 +33,7 @@ var UpdatedTags []string
 
 var selectedGlossarTag string
 var glossarTagDeleteButton *widget.Button
+var glossarSearchEntryClearButton *widget.Button
 
 func SetupGlossar(w fyne.Window) *container.TabItem {
 
@@ -143,10 +144,27 @@ func SetupGlossar(w fyne.Window) *container.TabItem {
 		glossarDefinitionEntry.SetText(selectedEntry.Definition)
 	}
 
+	// Glossar Search <start>
 	glossarSearchEntry = widget.NewEntry()
+	glossarSearchEntryClearButton = widget.NewButton("", func() {
+		glossarSearchEntry.SetText("")
+		glossarSearchEntryClearButton.Hide()
+	})
+	glossarSearchEntryClearButton.Icon = myTheme.Icon(myTheme{}, theme.IconNameDelete)
+	glossarSearchEntryClearButton.Importance = widget.LowImportance
+	glossarSearchEntryClearButton.Resize(fyne.NewSize(30, 30))
+	glossarSearchEntryClearButton.Move(fyne.NewPos(243, 3))
+	glossarSearchEntryClearButton.Hide()
+
 	glossarSearchEntry.OnChanged = func(s string) {
+		if s == "" {
+			glossarSearchEntryClearButton.Hide()
+		} else {
+			glossarSearchEntryClearButton.Show()
+		}
 		updateGlossarListSelection(glossary, s)
 	}
+	// Glossar Search <end>
 
 	glossarSaveButton := widget.NewButton("Save", func() {
 		term := strings.TrimSpace(glossarTermEntry.Text)
@@ -218,20 +236,25 @@ func SetupGlossar(w fyne.Window) *container.TabItem {
 	})
 
 	glossarListContainer := container.NewVScroll(glossarList)
-	glossarListContainer.SetMinSize(fyne.NewSize(200, 480)) // Set minimum size to increase height
+	glossarListContainer.SetMinSize(fyne.NewSize(275, 480)) // Set minimum size to increase height
 
 	glossarSearchLabel = widget.NewLabel(fmt.Sprintf("Search Glossar: %d of %d", len(filteredGlossarList), len(glossary)))
 
 	glossarListBox := container.NewVBox(
 		glossarSearchLabel,
-		glossarSearchEntry,
+		container.NewStack(
+			glossarSearchEntry,
+			// container.NewVBox(layout.NewSpacer(), container.NewHBox(layout.NewSpacer(), glossarSearchEntryClearButton)),
+			container.NewWithoutLayout(layout.NewSpacer(), glossarSearchEntryClearButton),
+		),
 		glossarListContainer,
 	)
 
 	glossarEntryTagListContainer := container.NewVScroll(glossarEntryTagList)
 	glossarEntryTagListContainer.SetMinSize(fyne.NewSize(300, 200))
 
-	background := canvas.NewRectangle(color.RGBA{R: 255, G: 255, B: 255, A: 255})
+	// background := canvas.NewRectangle(color.RGBA{R: 255, G: 255, B: 255, A: 255})
+	background := canvas.NewRectangle(myTheme.Color(myTheme{}, theme.ColorNameBackground, theme.VariantDark))
 	background.SetMinSize(fyne.NewSize(300, 1)) // without this line, the sizing of the right hand side (form fields) will not work
 
 	vbox := container.New(

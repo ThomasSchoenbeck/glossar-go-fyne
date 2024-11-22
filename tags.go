@@ -7,12 +7,14 @@ import (
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/container"
 	"fyne.io/fyne/v2/dialog"
+	"fyne.io/fyne/v2/layout"
+	"fyne.io/fyne/v2/theme"
 	"fyne.io/fyne/v2/widget"
 )
 
 var tagSearchLabel *widget.Label
 var tagSearchEntry *widget.Entry
-
+var tagSearchEntryClearButton *widget.Button
 var tagDeleteButton *widget.Button
 var tagList *widget.List
 var selectedTag string
@@ -32,7 +34,21 @@ func SetupTags(w fyne.Window) *container.TabItem {
 	)
 
 	tagSearchEntry = widget.NewEntry()
+	tagSearchEntryClearButton = widget.NewButton("", func() {
+		tagSearchEntry.SetText("")
+		tagSearchEntryClearButton.Hide()
+	})
+	tagSearchEntryClearButton.Icon = myTheme.Icon(myTheme{}, theme.IconNameDelete)
+	tagSearchEntryClearButton.Importance = widget.LowImportance
+	tagSearchEntryClearButton.Resize(fyne.NewSize(30, 30))
+	tagSearchEntryClearButton.Move(fyne.NewPos(560, 3))
+	tagSearchEntryClearButton.Hide()
 	tagSearchEntry.OnChanged = func(s string) {
+		if s == "" {
+			tagSearchEntryClearButton.Hide()
+		} else {
+			tagSearchEntryClearButton.Show()
+		}
 		updateTagList(s)
 	}
 
@@ -46,12 +62,14 @@ func SetupTags(w fyne.Window) *container.TabItem {
 			if b {
 				for i, tag := range tags {
 					if tag == selectedTag {
-						deleteTag(i, selectedTag)
+						tagToRemove := selectedTag
+						counter := deleteTag(i, tagToRemove)
 						updateTagList(searchEntry.Text)
 						tagList.Refresh()
 						selectedTag = ""
 						searchEntry.SetText("")
 						tagDeleteButton.Disable()
+						dialog.ShowInformation("Delete finished", fmt.Sprintf("Deletion has removed the tag %s in %d glossar entries", tagToRemove, counter), w)
 						break
 					}
 				}
@@ -78,7 +96,10 @@ func SetupTags(w fyne.Window) *container.TabItem {
 
 	return container.NewTabItem("Tags", container.NewVBox(
 		container.NewHBox(tagSearchLabel, tagDeleteButton),
-		tagSearchEntry,
+		container.NewStack(
+			tagSearchEntry,
+			container.NewWithoutLayout(layout.NewSpacer(), tagSearchEntryClearButton),
+		),
 		tagListScroll,
 	))
 }
@@ -109,18 +130,21 @@ func RefreshTagList() {
 	updateTagList(tagSearchEntry.Text)
 }
 
-func deleteTag(deleteIndex int, tagToDelete string) {
+func deleteTag(deleteIndex int, tagToDelete string) int {
 	tags = append(tags[:deleteIndex], tags[deleteIndex+1:]...)
 
+	counter := 0
 	// delete from the entire glossary
 	for i, entry := range glossary {
 		for j, tag := range entry.Tags {
 			if tag == tagToDelete {
 				glossary[i].Tags = append(glossary[i].Tags[:j], glossary[i].Tags[j+1:]...)
+				counter++
 			}
 		}
 	}
 
 	saveGlossary()
 
+	return counter
 }

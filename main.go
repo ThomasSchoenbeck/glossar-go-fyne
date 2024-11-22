@@ -1,7 +1,6 @@
 package main
 
 import (
-	"io"
 	"log"
 	"os"
 
@@ -100,6 +99,7 @@ func saveGlossary() {
 }
 
 func main() {
+	os.Setenv("FYNE_THEME", "dark")
 	loadGlossary()
 
 	a := app.NewWithID("com.example.glossary")
@@ -135,21 +135,14 @@ func main() {
 			// 	a.Quit()
 			// }),
 		)
-		// Load the image file
-		file, err := os.Open("icon_64.png")
-		if err != nil {
-			panic(err)
-		}
-		defer file.Close()
 
-		// Read the file content
-		data, err := io.ReadAll(file)
+		bytes, err := os.ReadFile("icon_64.png")
 		if err != nil {
 			panic(err)
 		}
 
 		// desk.SetSystemTrayIcon(theme.FyneLogo())
-		img := fyne.NewStaticResource("icon_64.png", data)
+		img := fyne.NewStaticResource("icon_64.png", bytes)
 		desk.SetSystemTrayMenu(m)
 		desk.SetSystemTrayIcon(img)
 	}
@@ -179,6 +172,6 @@ func main() {
 	a.SetIcon(icon)
 	w.SetIcon(icon)
 	quickSearch.SetIcon(icon)
-
+	a.Settings().SetTheme(&myTheme{})
 	a.Run()
 }
