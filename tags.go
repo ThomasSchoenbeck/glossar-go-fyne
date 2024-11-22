@@ -13,7 +13,7 @@ import (
 )
 
 var tagSearchLabel *widget.Label
-var tagSearchEntry *widget.Entry
+var tagSearchEntry *customEntry
 var tagSearchEntryClearButton *widget.Button
 var tagDeleteButton *widget.Button
 var tagList *widget.List
@@ -33,7 +33,12 @@ func SetupTags(w fyne.Window) *container.TabItem {
 		},
 	)
 
-	tagSearchEntry = widget.NewEntry()
+	tagSearchEntry = newCustomEntry(nil, func(ke *fyne.KeyEvent) {
+		if ke.Name == "Escape" {
+			tagSearchEntry.SetText("")
+			tagSearchEntryClearButton.Hide()
+		}
+	}, nil)
 	tagSearchEntryClearButton = widget.NewButton("", func() {
 		tagSearchEntry.SetText("")
 		tagSearchEntryClearButton.Hide()

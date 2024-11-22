@@ -19,7 +19,7 @@ var selectedEntryTags []string
 var filteredGlossarList []GlossaryEntry
 var glossarListSelectedIndex int = -1
 var glossarList *widget.List
-var glossarSearchEntry *widget.Entry
+var glossarSearchEntry *customEntry
 var glossarSearchLabel *widget.Label
 var glossarTermEntry *widget.Entry
 var glossarDefinitionEntry *widget.Entry
@@ -145,7 +145,12 @@ func SetupGlossar(w fyne.Window) *container.TabItem {
 	}
 
 	// Glossar Search <start>
-	glossarSearchEntry = widget.NewEntry()
+	glossarSearchEntry = newCustomEntry(nil, func(ke *fyne.KeyEvent) {
+		if ke.Name == "Escape" {
+			glossarSearchEntry.SetText("")
+			glossarSearchEntryClearButton.Hide()
+		}
+	}, nil)
 	glossarSearchEntryClearButton = widget.NewButton("", func() {
 		glossarSearchEntry.SetText("")
 		glossarSearchEntryClearButton.Hide()
@@ -164,6 +169,7 @@ func SetupGlossar(w fyne.Window) *container.TabItem {
 		}
 		updateGlossarListSelection(glossary, s)
 	}
+
 	// Glossar Search <end>
 
 	glossarSaveButton := widget.NewButton("Save", func() {

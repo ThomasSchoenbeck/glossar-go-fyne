@@ -1,10 +1,12 @@
 package main
 
 import (
+	"fmt"
 	"strings"
 
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/container"
+	"fyne.io/fyne/v2/theme"
 	"fyne.io/fyne/v2/widget"
 	hook "github.com/robotn/gohook"
 )
@@ -12,16 +14,26 @@ import (
 var listMaxLength int = 5
 var selectedIndex int = -1
 var filtered []GlossaryEntry
-var quickSearchFocused bool = false
+var quickSearchEntryFocused bool = false
+var quicksearchEntryClearButton *widget.Button
+var appWindowActive bool = false
 
 func SetupQuicksearch(a fyne.App) fyne.Window {
 	quickSearchWindow := a.NewWindow("Quick Search")
+	a.Lifecycle().SetOnEnteredForeground(func() {
+		appWindowActive = true
+		fmt.Println("appWindowActive", appWindowActive)
+	})
+	a.Lifecycle().SetOnExitedForeground(func() {
+		appWindowActive = false
+		fmt.Println("appWindowActive", appWindowActive)
+	})
 	resultsContainer := container.NewVBox()
 	resultsScroll := container.NewVScroll(resultsContainer)
 	resultsScroll.SetMinSize(fyne.NewSize(400, 200)) // Ensure space for at least 5 items
 
 	searchEntry = newCustomEntry(func() {
-		quickSearchFocused = true
+		quickSearchEntryFocused = true
 		filtered = glossary
 		updateSelection(resultsContainer, selectedIndex, filtered)
 	}, func(key *fyne.KeyEvent) {
@@ -36,11 +48,21 @@ func SetupQuicksearch(a fyne.App) fyne.Window {
 		}
 		updateSelection(resultsContainer, selectedIndex, filtered)
 	}, func() {
-		quickSearchFocused = false
+		quickSearchEntryFocused = false
 	},
 	)
 	suggestionLabel := widget.NewRichTextFromMarkdown("")
 	suggestionLabel.Hide()
+
+	quicksearchEntryClearButton = widget.NewButton("", func() {
+		searchEntry.SetText("")
+		quicksearchEntryClearButton.Hide()
+	})
+	quicksearchEntryClearButton.Icon = myTheme.Icon(myTheme{}, theme.IconNameDelete)
+	quicksearchEntryClearButton.Importance = widget.LowImportance
+	quicksearchEntryClearButton.Resize(fyne.NewSize(30, 30))
+	quicksearchEntryClearButton.Move(fyne.NewPos(365, 3))
+	quicksearchEntryClearButton.Hide()
 
 	searchEntry.OnChanged = func(s string) {
 		resultsContainer.Objects = nil
@@ -60,6 +82,12 @@ func SetupQuicksearch(a fyne.App) fyne.Window {
 			resultsContainer.Add(result)
 		}
 
+		if s == "" {
+			quicksearchEntryClearButton.Hide()
+		} else {
+			quicksearchEntryClearButton.Show()
+		}
+
 		resultsContainer.Refresh()
 	}
 
@@ -67,6 +95,7 @@ func SetupQuicksearch(a fyne.App) fyne.Window {
 		container.NewStack(
 			searchEntry,
 			container.NewWithoutLayout(suggestionLabel),
+			container.NewWithoutLayout(quicksearchEntryClearButton),
 		),
 		resultsScroll,
 	))
@@ -84,12 +113,15 @@ func SetupQuicksearch(a fyne.App) fyne.Window {
 			}
 		})
 		hook.Register(hook.KeyDown, []string{"esc"}, func(e hook.Event) {
-			if !quickSearchFocused {
-				return
-			}
-			if quickSearchVisible {
+			if quickSearchVisible && !quickSearchEntryFocused && appWindowActive {
 				quickSearchWindow.Hide()
 				quickSearchVisible = false
+			}
+			if quickSearchEntryFocused && searchEntry.Text == "" {
+				quickSearchWindow.Canvas().Focus(nil)
+			}
+			if quickSearchEntryFocused && searchEntry.Text != "" {
+				searchEntry.SetText("")
 			}
 		})
 
