@@ -17,6 +17,9 @@ todo:
 - functionality to update tags
 - better styling
 - update readme
+- add url list as additional field for glossar entries
+- add images for glossar entries?
+- responsive design (make ui fit to window, resizing the window the ui should grow or shrink)
 
 known issues:
 - app icon (window and taskbar) is not working

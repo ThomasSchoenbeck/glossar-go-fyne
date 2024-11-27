@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"image/color"
+	"regexp"
 	"strings"
 
 	"fyne.io/fyne/v2"
@@ -68,11 +69,10 @@ func SetupGlossar(w fyne.Window) *container.TabItem {
 
 			tags := filteredGlossarList[i].Tags
 			term := filteredGlossarList[i].Term
+			o.(*fyne.Container).Objects = []fyne.CanvasObject{o.(*fyne.Container).Objects[0]}
 
 			if len(tags) > 0 {
-
 				o.(*fyne.Container).Objects[0].(*widget.Label).SetText(term)
-				o.(*fyne.Container).Objects = []fyne.CanvasObject{o.(*fyne.Container).Objects[0]}
 				for _, tag := range tags {
 					tagCanvas := canvas.NewRectangle(color.RGBA{R: 100, G: 100, B: 100, A: 255})
 					tagCanvas.SetMinSize(fyne.NewSize(50, 27))
@@ -86,7 +86,6 @@ func SetupGlossar(w fyne.Window) *container.TabItem {
 				}
 			} else {
 				o.(*fyne.Container).Objects[0].(*widget.Label).SetText(term)
-				o.(*fyne.Container).Objects = []fyne.CanvasObject{o.(*fyne.Container).Objects[0]}
 			}
 		},
 	)
@@ -310,28 +309,101 @@ func SetupGlossar(w fyne.Window) *container.TabItem {
 func updateGlossarListSelection(glossaryEntries []GlossaryEntry, searchString string) {
 	var filteredEntries []GlossaryEntry
 	lowerSearchTerm := strings.ToLower(searchString)
-	if strings.Contains(lowerSearchTerm, "tag:") {
-		tagSearchString := lowerSearchTerm
-		tagSearchString = strings.Replace(tagSearchString, "tag:", "", 1)
+	var searchMode []string
 
-		for _, entry := range glossaryEntries {
-			for _, tag := range entry.Tags {
-				if strings.Contains(strings.ToLower(tag), strings.ToLower(tagSearchString)) {
-					filteredEntries = append(filteredEntries, entry)
+	var tags, definitions []string
+	var searchTerm string
+
+	// Regex to match tags and definitions
+	tagRegex := regexp.MustCompile(`tag:([^ ]+)`)
+	defRegex := regexp.MustCompile(`def:([^ ]+)`)
+
+	// Find all tag matches
+	tagMatches := tagRegex.FindAllStringSubmatch(lowerSearchTerm, -1)
+	for _, match := range tagMatches {
+		if strings.Contains(match[1], ",") {
+			tags = strings.Split(match[1], ",")
+		} else {
+			tags = append(tags, match[1])
+		}
+		lowerSearchTerm = strings.ReplaceAll(lowerSearchTerm, match[0], "")
+		searchMode = append(searchMode, "tag")
+	}
+
+	// Find all definition matches
+	defMatches := defRegex.FindAllStringSubmatch(lowerSearchTerm, -1)
+	for _, match := range defMatches {
+		if strings.Contains(match[1], ",") {
+			definitions = strings.Split(match[1], ",")
+		} else {
+			definitions = append(definitions, match[1])
+		}
+		lowerSearchTerm = strings.ReplaceAll(lowerSearchTerm, match[0], "")
+		searchMode = append(searchMode, "definition")
+	}
+
+	// Remaining string is the search term
+	searchTerm = strings.TrimSpace(lowerSearchTerm)
+
+	fmt.Println("Tags:", tags)
+	fmt.Println("Definitions:", definitions)
+	fmt.Println("Search Term:", searchTerm)
+
+	for _, entry := range glossaryEntries {
+
+		tagMatch := false
+		defMatch := false
+		searchMatch := false
+
+		if len(tags) > 0 {
+			for _, tag := range tags {
+				if tag == "" || tag == " " {
+					continue
+				}
+				for _, glossarTag := range entry.Tags {
+					if strings.Contains(strings.ToLower(glossarTag), strings.TrimRight(tag, " ")) {
+						tagMatch = true
+					}
 				}
 			}
 		}
 
-	} else {
-		for _, entry := range glossaryEntries {
-			if strings.Contains(strings.ToLower(entry.Term), lowerSearchTerm) {
-				filteredEntries = append(filteredEntries, entry)
+		if len(definitions) > 0 {
+			for _, def := range definitions {
+				if def == "" || def == " " {
+					continue
+				}
+				if strings.Contains(strings.ToLower(entry.Definition), strings.TrimRight(def, " ")) {
+					defMatch = true
+				}
 			}
 		}
+
+		if len(searchTerm) > 0 {
+			if strings.Contains(strings.ToLower(entry.Term), searchTerm) {
+				searchMatch = true
+			}
+		}
+
+		if len(tags) > 0 && tags[0] != "" && !tagMatch {
+			continue
+		}
+		if len(definitions) > 0 && definitions[0] != "" && !defMatch {
+			continue
+		}
+		if len(searchTerm) > 0 && !searchMatch {
+			continue
+		}
+		filteredEntries = append(filteredEntries, entry)
+
 	}
 
 	filteredGlossarList = filteredEntries
-	glossarSearchLabel.SetText(fmt.Sprintf("Search Glossar: %d of %d", len(filteredGlossarList), len(glossary)))
+	searchModeString := ""
+	if len(searchMode) > 0 {
+		searchModeString = "(" + strings.Join(searchMode, ", ") + ") "
+	}
+	glossarSearchLabel.SetText(fmt.Sprintf("Search %sGlossar: %d of %d", searchModeString, len(filteredGlossarList), len(glossary)))
 	glossarList.Refresh()
 }
 
