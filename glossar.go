@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"image/color"
 	"strings"
 
 	"fyne.io/fyne/v2"
@@ -41,6 +42,7 @@ func SetupGlossar(w fyne.Window) *container.TabItem {
 
 	glossarTermEntry = widget.NewEntry()
 	glossarDefinitionEntry = widget.NewMultiLineEntry()
+	glossarDefinitionEntry.SetMinRowsVisible(5)
 	glossarDefinitionEntry.Wrapping = fyne.TextWrapWord
 
 	glossarEntryTagList = widget.NewList(
@@ -60,10 +62,32 @@ func SetupGlossar(w fyne.Window) *container.TabItem {
 			return len(filteredGlossarList)
 		},
 		func() fyne.CanvasObject {
-			return widget.NewLabel("")
+			return container.New(layout.NewHBoxLayout(), widget.NewLabel(""))
 		},
 		func(i widget.ListItemID, o fyne.CanvasObject) {
-			o.(*widget.Label).SetText(filteredGlossarList[i].Term)
+
+			tags := filteredGlossarList[i].Tags
+			term := filteredGlossarList[i].Term
+
+			if len(tags) > 0 {
+
+				o.(*fyne.Container).Objects[0].(*widget.Label).SetText(term)
+				o.(*fyne.Container).Objects = []fyne.CanvasObject{o.(*fyne.Container).Objects[0]}
+				for _, tag := range tags {
+					tagCanvas := canvas.NewRectangle(color.RGBA{R: 100, G: 100, B: 100, A: 255})
+					tagCanvas.SetMinSize(fyne.NewSize(50, 27))
+					tagCanvas.CornerRadius = 15
+
+					tagLabel := widget.NewLabel(tag)
+					tagLabel.Alignment = fyne.TextAlignCenter
+
+					tagContainer := container.NewCenter(tagCanvas, tagLabel)
+					o.(*fyne.Container).Objects = append(o.(*fyne.Container).Objects, tagContainer)
+				}
+			} else {
+				o.(*fyne.Container).Objects[0].(*widget.Label).SetText(term)
+				o.(*fyne.Container).Objects = []fyne.CanvasObject{o.(*fyne.Container).Objects[0]}
+			}
 		},
 	)
 
