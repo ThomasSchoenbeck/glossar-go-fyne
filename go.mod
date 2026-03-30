@@ -1,6 +1,6 @@
 module glossar-go-fyne
 
-go 1.23.2
+go 1.25.0
 
 require (
 	fyne.io/fyne/v2 v2.5.2
@@ -35,10 +35,10 @@ require (
 	github.com/vcaesar/keycode v0.10.1 // indirect
 	github.com/vcaesar/tt v0.20.1 // indirect
 	github.com/yuin/goldmark v1.7.1 // indirect
-	golang.org/x/image v0.21.0 // indirect
+	golang.org/x/image v0.38.0 // indirect
 	golang.org/x/mobile v0.0.0-20231127183840-76ac6878050a // indirect
 	golang.org/x/net v0.25.0 // indirect
 	golang.org/x/sys v0.26.0 // indirect
-	golang.org/x/text v0.19.0 // indirect
+	golang.org/x/text v0.35.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
